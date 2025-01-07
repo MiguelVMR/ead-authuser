@@ -1,0 +1,41 @@
+server:
+  port: 8087
+  servlet:
+    context-path: '/ead-authuser/'
+
+spring:
+  application:
+    name: ead-authuser-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ead-authuser
+    username: cidadania4u-ecossistema
+    password: cidadania4u-ecossistema
+  jpa:
+    properties:
+      hibernate:
+        time_zone: America/Sao_Paulo
+        show_sql: true
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+
+ead:
+  api:
+    url:
+      course: 'http://ead-course-service/ead-course'
+
+logging:
+  level:
+    com.ead: TRACE
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate: INFO
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: 'http://localhost:8761/eureka'
+  instance:
+    hostname: localhost
+

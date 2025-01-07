@@ -1,0 +1,59 @@
+package com.ead.authuser.clients;
+
+import com.ead.authuser.dtos.CourseRecordDto;
+import com.ead.authuser.dtos.ResponsePageDto;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+
+import java.util.UUID;
+
+/**
+ * The Class CourseClient
+ *
+ * @author Miguel Vilela Moraes Ribeiro
+ * @since 13/12/2024
+ */
+@Component
+public class CourseClient {
+
+    @Value("${ead.api.url.course}")
+    String baseUrlCourse;
+
+    final RestClient restClient;
+
+    public CourseClient(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder.build();
+    }
+
+    public Page<CourseRecordDto> getAllCoursesByUser(UUID userId, Pageable pageable){
+        String url = baseUrlCourse + "/courses?userId=" + userId + "&page=" + pageable.getPageNumber() + "&size="
+                       + pageable.getPageSize() + "&sort=" + pageable.getSort().toString().replaceAll(": ", ",");
+        try{
+            return restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<ResponsePageDto<CourseRecordDto>>() {});
+
+        } catch (RestClientException e) {
+            throw new RuntimeException("Error Request RestClient", e);
+        }
+    }
+
+    public void deleteUserCourseInCourse(UUID userId){
+        String url = baseUrlCourse + "/courses/users/" + userId;
+
+        try{
+            restClient.delete()
+                    .uri(url)
+                    .retrieve()
+                    .toBodilessEntity();
+        }catch (RestClientException e){
+            throw new RuntimeException("Error Request DELETE RestClient", e);
+        }
+    }
+}
