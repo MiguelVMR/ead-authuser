@@ -1,9 +1,7 @@
 package com.ead.authuser.specifications;
 
-import com.ead.authuser.models.UserCourseModel;
 import com.ead.authuser.models.UserModel;
 import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
 import net.kaczmarzyk.spring.data.jpa.domain.Equal;
 import net.kaczmarzyk.spring.data.jpa.domain.Like;
 import net.kaczmarzyk.spring.data.jpa.domain.LikeIgnoreCase;
@@ -29,12 +27,4 @@ public class SpecificationTemplate {
             @Spec(path = "fullName", spec = LikeIgnoreCase.class)
     })
     public interface UserSpec extends Specification<UserModel> {}
-
-    public static Specification<UserModel> userCourseId(final UUID courseId) {
-        return ((root, query, criteriaBuilder) -> {
-         query.distinct(true);
-            Join<UserModel, UserCourseModel> userJoin = root.join("usersCourses");
-            return criteriaBuilder.equal(userJoin.get("courseId"), courseId);
-        });
-    }
 }

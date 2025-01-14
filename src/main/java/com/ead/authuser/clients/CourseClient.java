@@ -43,17 +43,4 @@ public class CourseClient {
             throw new RuntimeException("Error Request RestClient", e);
         }
     }
-
-    public void deleteUserCourseInCourse(UUID userId){
-        String url = baseUrlCourse + "/courses/users/" + userId;
-
-        try{
-            restClient.delete()
-                    .uri(url)
-                    .retrieve()
-                    .toBodilessEntity();
-        }catch (RestClientException e){
-            throw new RuntimeException("Error Request DELETE RestClient", e);
-        }
-    }
 }
