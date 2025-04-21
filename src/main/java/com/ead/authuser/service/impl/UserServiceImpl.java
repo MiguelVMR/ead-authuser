@@ -3,17 +3,20 @@ package com.ead.authuser.service.impl;
 import com.ead.authuser.clients.CourseClient;
 import com.ead.authuser.dtos.UserRecordDto;
 import com.ead.authuser.enums.ActionType;
+import com.ead.authuser.enums.RoleType;
 import com.ead.authuser.enums.UserStatus;
 import com.ead.authuser.enums.UserType;
 import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.models.UserModel;
 import com.ead.authuser.publishers.UserEventPublisher;
 import com.ead.authuser.repositories.UserRepository;
+import com.ead.authuser.service.RoleService;
 import com.ead.authuser.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,10 +40,16 @@ public class UserServiceImpl implements UserService {
 
     private final UserEventPublisher userEventPublisher;
 
-    public UserServiceImpl(UserRepository userRepository, CourseClient courseClient, UserEventPublisher userEventPublisher) {
+    private final RoleService roleService;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public UserServiceImpl(UserRepository userRepository, CourseClient courseClient, UserEventPublisher userEventPublisher, RoleService roleService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.courseClient = courseClient;
         this.userEventPublisher = userEventPublisher;
+        this.roleService = roleService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -52,7 +61,7 @@ public class UserServiceImpl implements UserService {
     public Optional<UserModel> findById(UUID userId) {
         Optional<UserModel> userModelOptional = userRepository.findById(userId);
         if (userModelOptional.isEmpty()) {
-            throw new NotFoundException("User not found");
+                throw new NotFoundException("User not found");
         }
         return userModelOptional;
     }
@@ -73,6 +82,8 @@ public class UserServiceImpl implements UserService {
         userModel.setUserType(UserType.USER);
         userModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        userModel.setPassword(passwordEncoder.encode(userModel.getPassword()));
+        userModel.getRoles().add(roleService.findByRoleName(RoleType.ROLE_USER));
         userRepository.save(userModel);
         userEventPublisher.publishUserEvent(userModel.convertToUserEventDto(ActionType.CREATE));
         return userModel;
@@ -101,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updatePassword(UserRecordDto userRecordDto, UserModel userModel) {
-        userModel.setPassword(userRecordDto.password());
+        userModel.setPassword(passwordEncoder.encode(userRecordDto.password()));
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
         userRepository.save(userModel);
     }
@@ -126,8 +137,25 @@ public class UserServiceImpl implements UserService {
     public UserModel registerInstructor(UserModel userModel) {
         userModel.setUserType(UserType.INSTRUCTOR);
         userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        userModel.getRoles().add(roleService.findByRoleName(RoleType.ROLE_INSTRUCTOR));
         userRepository.save(userModel);
         userEventPublisher.publishUserEvent(userModel.convertToUserEventDto(ActionType.UPDATE));
+        return userModel;
+    }
+
+    @Transactional
+    @Override
+    public UserModel registerUserAdmin(UserRecordDto userRecordDto) {
+        var userModel = new UserModel();
+        BeanUtils.copyProperties(userRecordDto, userModel);
+        userModel.setUserStatus(UserStatus.ACTIVE);
+        userModel.setUserType(UserType.ADMIN);
+        userModel.setCreationDate(LocalDateTime.now(ZoneId.of("UTC")));
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        userModel.setPassword(passwordEncoder.encode(userModel.getPassword()));
+        userModel.getRoles().add(roleService.findByRoleName(RoleType.ROLE_ADMIN));
+        userRepository.save(userModel);
+        userEventPublisher.publishUserEvent(userModel.convertToUserEventDto(ActionType.CREATE));
         return userModel;
     }
 }
